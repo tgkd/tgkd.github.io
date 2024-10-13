@@ -1,0 +1,42 @@
+---
+interface Props {
+    feed?: string;
+    title?: string;
+    href?: string;
+    date?: Date;
+}
+
+const { href, title, date, feed } = Astro.props;
+---
+
+<li class="link-card">
+    <p>
+        <small>{date?.toLocaleDateString()}</small>
+        {feed}
+    </p>
+    <a href={href}>
+        <h3>
+            {title}
+            <span>&rarr;</span>
+        </h3>
+    </a>
+</li>
+<style>
+    .link-card {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        list-style: none;
+    }
+    p {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        margin: 0;
+    }
+    a {
+        display: inline-flex;
+    }
+    h3 {
+        margin: 0;
+    }
+</style>
