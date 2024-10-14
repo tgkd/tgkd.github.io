@@ -8,7 +8,14 @@ function nonNullable<T>(value: T): value is NonNullable<T> {
     return value !== null && value !== undefined;
 }
 
-const now = new Date().toLocaleDateString();
+const d = new Date();
+const now = d.toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+});
+const week = d.setDate(d.getDate() - 7);
 
 const parser = new Parser();
 
@@ -18,6 +25,8 @@ const list = (
             "https://www.smashingmagazine.com/feed/",
             "https://developer.mozilla.org/en-US/blog/rss.xml",
             "https://hnrss.org/newest",
+            "https://techcrunch.com/feed",
+            "https://theverge.com/rss/frontpage",
         ].map(async (src) => {
             try {
                 const feed = await parser.parseURL(src);
@@ -28,7 +37,7 @@ const list = (
                     date: i.pubDate ? new Date(i.pubDate) : undefined,
                 }));
             } catch (error) {
-                console.error("Error fetching feed", error);
+                console.error("Error fetching feed" + src, error);
             }
         })
     )
@@ -36,15 +45,13 @@ const list = (
     .filter((r) => r.status === "fulfilled")
     .flatMap((r) => r.value)
     .filter(nonNullable)
+    .filter((r) => (r.date ? Number(r.date) >= week : true))
     .sort((a, b) => (b.date ?? new Date()).getTime() - (a.date ?? new Date()).getTime());
 ---
 
 <Layout title="rss">
     <main>
-        <h1>
-            Latest
-            <time>{now}</time>
-        </h1>
+        <time>{now}</time>
         <ul>
             {list.map((item) => <ListRow {...item} />)}
         </ul>
@@ -56,11 +63,8 @@ const list = (
         padding: 2rem;
         color: white;
     }
-    h1 {
-        margin-bottom: 1rem;
-        color: var(--text);
-    }
     time {
+        margin-bottom: 1rem;
         font-size: 1rem;
         color: var(--text-secondary);
     }
