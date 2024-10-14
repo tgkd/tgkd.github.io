@@ -27,6 +27,7 @@ const list = (
             "https://hnrss.org/newest",
             "https://techcrunch.com/feed",
             "https://theverge.com/rss/frontpage",
+            "https://feeds.macrumors.com/MacRumors-All",
         ].map(async (src) => {
             try {
                 const feed = await parser.parseURL(src);
