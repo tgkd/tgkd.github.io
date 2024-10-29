@@ -3,9 +3,38 @@ import Parser from "rss-parser";
 
 import Layout from "../layouts/Layout.astro";
 import ListRow from "../components/ListRow.astro";
+import type { Props as ListProps } from "../components/ListRow.astro";
 
 function nonNullable<T>(value: T): value is NonNullable<T> {
     return value !== null && value !== undefined;
+}
+
+function getCategory(url?: string): ListProps["category"] {
+    if (!url) {
+        return "NEWS";
+    }
+    if (url.includes("smashingmagazine")) {
+        return "DEV";
+    }
+    if (url.includes("mozilla")) {
+        return "DEV";
+    }
+    if (url.includes("hnrss")) {
+        return "DEV";
+    }
+    if (url.includes("techcrunch")) {
+        return "TECH";
+    }
+    if (url.includes("theverge")) {
+        return "TECH";
+    }
+    if (url.includes("macrumors")) {
+        return "TECH";
+    }
+    if (url.includes("crunchyroll")) {
+        return "TV";
+    }
+    return "NEWS";
 }
 
 const d = new Date();
@@ -28,10 +57,12 @@ const list = (
             "https://techcrunch.com/feed",
             "https://theverge.com/rss/frontpage",
             "https://feeds.macrumors.com/MacRumors-All",
+            "http://feeds.feedburner.com/crunchyroll/rss/anime",
         ].map(async (src) => {
             try {
                 const feed = await parser.parseURL(src);
                 return feed.items.map((i) => ({
+                    category: getCategory(feed.feedUrl),
                     feed: feed.title,
                     title: i.title,
                     href: i.link,

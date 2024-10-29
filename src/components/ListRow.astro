@@ -1,12 +1,13 @@
 ---
-interface Props {
+export interface Props {
     feed?: string;
     title?: string;
     href?: string;
     date?: Date;
+    category?: "DEV" | "TECH" | "NEWS" | "TV";
 }
 
-const { href, title, date, feed } = Astro.props;
+const { href, title, date, feed, category } = Astro.props;
 ---
 
 <li class="link-card">
@@ -15,9 +16,10 @@ const { href, title, date, feed } = Astro.props;
         {feed}
     </p>
     <a href={href}>
+        <span class="category" data-category={category}></span>
+
         <h3>
             {title}
-            <span>&rarr;</span>
         </h3>
     </a>
 </li>
@@ -35,8 +37,28 @@ const { href, title, date, feed } = Astro.props;
     }
     a {
         display: inline-flex;
+        align-items: center;
     }
     h3 {
         margin: 0;
+    }
+    .category {
+        width: 1rem;
+        height: 1rem;
+        border-radius: 50%;
+        background: var(--text-secondary);
+        margin-right: 0.5rem;
+    }
+    .category[data-category="DEV"] {
+        background: var(--category-dev);
+    }
+    .category[data-category="TECH"] {
+        background: var(--category-tech);
+    }
+    .category[data-category="NEWS"] {
+        background: var(--category-news);
+    }
+    .category[data-category="TV"] {
+        background: var(--category-tv);
     }
 </style>
