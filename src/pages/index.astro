@@ -2,8 +2,9 @@
 import Parser from "rss-parser";
 
 import Layout from "../layouts/Layout.astro";
-import ListRow from "../components/ListRow.astro";
+import List from "../components/List.astro";
 import type { Props as ListProps } from "../components/ListRow.astro";
+import Filters from "../components/Filters.astro";
 
 function nonNullable<T>(value: T): value is NonNullable<T> {
     return value !== null && value !== undefined;
@@ -62,7 +63,7 @@ const list = (
             try {
                 const feed = await parser.parseURL(src);
                 return feed.items.map((i) => ({
-                    category: getCategory(feed.feedUrl),
+                    category: getCategory(src),
                     feed: feed.title,
                     title: i.title,
                     href: i.link,
@@ -84,9 +85,8 @@ const list = (
 <Layout title="rss">
     <main>
         <time>{now}</time>
-        <ul>
-            {list.map((item) => <ListRow {...item} />)}
-        </ul>
+        <Filters />
+        <List list={list} />
     </main>
 </Layout>
 
@@ -100,10 +100,57 @@ const list = (
         font-size: 1rem;
         color: var(--text-secondary);
     }
-    ul {
-        display: flex;
-        flex-direction: column;
-        row-gap: 1.5rem;
-        padding: 0;
-    }
 </style>
+
+<script>
+    function disableOther(enabledId: string) {
+        document.querySelectorAll("[data-filter]").forEach((b) => {
+            if (b.getAttribute("data-filter") !== enabledId) {
+                b.classList.remove("active");
+            } else {
+                b.classList.add("active");
+            }
+        });
+    }
+
+    function updateList(filter: string) {
+        const list = document.querySelectorAll("[data-category]");
+        list.forEach((item) => {
+            if (filter === "ALL") {
+                item.classList.remove("hidden");
+            } else if (item.getAttribute("data-category") === filter) {
+                item.classList.remove("hidden");
+            } else {
+                item.classList.add("hidden");
+            }
+        });
+    }
+
+    const currentFilter =
+        new URLSearchParams(window.location.search).get("filter") || "ALL";
+
+    disableOther(currentFilter);
+    updateList(currentFilter);
+    
+
+    document.querySelectorAll("[data-filter]").forEach((b) => {
+        b.addEventListener("click", () => {
+            const bFilter = b.getAttribute("data-filter");
+            if (!bFilter) {
+                return;
+            }
+
+            disableOther(bFilter);
+            updateList(bFilter);
+            const newUrl = new URL(window.location.href);
+            newUrl.searchParams.set("filter", bFilter);
+            history.pushState({}, "", newUrl);
+        });
+    });
+
+    window.addEventListener("popstate", () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const filter = urlParams.get("filter") || "ALL";
+        disableOther(filter);
+    });
+</script>

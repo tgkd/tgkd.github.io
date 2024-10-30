@@ -1,0 +1,52 @@
+---
+const { url } = Astro;
+const searchParams = url.searchParams;
+
+const filters = ["ALL", "DEV", "TECH", "NEWS", "TV"];
+const isActive = (f: string) => searchParams.get("category") === f;
+const getClassStr = (f: string) => `filter-item ${isActive(f) ? "active" : ""}`;
+---
+
+<div class="filters">
+    {
+        filters.map((f) => (
+            <button type="button" class={getClassStr(f)} data-filter={f}>
+                {f}
+            </button>
+        ))
+    }
+</div>
+
+<style>
+    .filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        padding: 1rem;
+        text-transform: capitalize;
+    }
+    .filter-item {
+        box-shadow: none;
+        border: none;
+        background-color: var(--bg-dark);
+        padding: 0.5rem 1rem;
+        border-radius: 0.25rem;
+        color: var(--text-white);
+    }
+    .active {
+        background: var(--category-tech);
+        color: white;
+    }
+
+    @media (max-width: 768px) {
+      .filters {
+        justify-content: center;
+        padding: 0.5rem;
+        gap: 0.5rem;
+      }
+      .filter-item {
+        padding: 0.25rem 0.75rem;
+        font-size: 0.9rem;
+      }
+    }
+</style>

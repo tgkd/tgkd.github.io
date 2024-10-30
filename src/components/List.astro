@@ -1,0 +1,23 @@
+---
+import ListRow from "./ListRow.astro";
+import type { Props as ListProps } from "../components/ListRow.astro";
+
+interface Props {
+    list: ListProps[];
+}
+
+const { list } = Astro.props;
+---
+
+<ul>
+    {list.map((item) => <ListRow {...item} />)}
+</ul>
+
+<style>
+    ul {
+        display: flex;
+        flex-direction: column;
+        row-gap: 1.5rem;
+        padding: 0;
+    }
+</style>

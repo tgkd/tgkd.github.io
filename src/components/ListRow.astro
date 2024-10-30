@@ -10,13 +10,13 @@ export interface Props {
 const { href, title, date, feed, category } = Astro.props;
 ---
 
-<li class="link-card">
+<li class="link-card" data-category={category}>
     <p>
         <small>{date?.toLocaleDateString()}</small>
         {feed}
     </p>
     <a href={href}>
-        <span class="category" data-category={category}></span>
+        <span class="category" data-category={category} title={category} />
 
         <h3>
             {title}
@@ -44,6 +44,7 @@ const { href, title, date, feed, category } = Astro.props;
     }
     .category {
         width: 1rem;
+        min-width: 1rem;
         height: 1rem;
         border-radius: 50%;
         background: var(--text-secondary);
@@ -60,5 +61,8 @@ const { href, title, date, feed, category } = Astro.props;
     }
     .category[data-category="TV"] {
         background: var(--category-tv);
+    }
+    .hidden {
+        display: none;
     }
 </style>
