@@ -22,26 +22,26 @@ const getClassStr = (f: string) => `filter-item ${isActive(f) ? "active" : ""}`;
         display: flex;
         flex-wrap: wrap;
         gap: 1rem;
-        padding: 1rem;
+        margin: 1rem 0;
         text-transform: capitalize;
     }
     .filter-item {
         box-shadow: none;
         border: none;
-        background-color: var(--bg-dark);
+        background-color: var(--accent-light);
         padding: 0.5rem 1rem;
         border-radius: 0.25rem;
         color: var(--text-white);
     }
     .active {
-        background: var(--category-tech);
+        background-color: var(--accent);
         color: white;
     }
 
     @media (max-width: 768px) {
       .filters {
         justify-content: center;
-        padding: 0.5rem;
+        margin: 0.5rem 0;
         gap: 0.5rem;
       }
       .filter-item {

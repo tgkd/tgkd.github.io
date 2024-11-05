@@ -16,11 +16,7 @@ const { href, title, date, feed, category } = Astro.props;
         {feed}
     </p>
     <a href={href}>
-        <span class="category" data-category={category} title={category} />
-
-        <h3>
-            {title}
-        </h3>
+        {title}
     </a>
 </li>
 <style>
@@ -38,9 +34,7 @@ const { href, title, date, feed, category } = Astro.props;
     a {
         display: inline-flex;
         align-items: center;
-    }
-    h3 {
-        margin: 0;
+        color: var(--text);
     }
     .category {
         width: 1rem;
