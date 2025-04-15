@@ -21,32 +21,40 @@ const getClassStr = (f: string) => `filter-item ${isActive(f) ? "active" : ""}`;
     .filters {
         display: flex;
         flex-wrap: wrap;
-        gap: 1rem;
-        margin: 1rem 0;
-        text-transform: capitalize;
+        gap: 0.75rem;
+        margin: 1.5rem 0;
     }
     .filter-item {
         box-shadow: none;
-        border: none;
-        background-color: var(--accent-light);
-        padding: 0.5rem 1rem;
-        border-radius: 0.25rem;
-        color: var(--text-white);
+        border: 1px solid #e0e0e0;
+        background-color: #f0f0f0;
+        padding: 0.4rem 1rem;
+        border-radius: 20px;
+        color: #333;
+        font-size: 0.95rem;
+        font-weight: 500;
+        transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+        cursor: pointer;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
     .active {
         background-color: var(--accent);
         color: white;
+        border-color: var(--accent);
+        font-weight: 600;
     }
 
     @media (max-width: 768px) {
       .filters {
         justify-content: center;
-        margin: 0.5rem 0;
+        margin: 1rem 0;
         gap: 0.5rem;
       }
       .filter-item {
-        padding: 0.25rem 0.75rem;
+        padding: 0.3rem 0.8rem;
         font-size: 0.9rem;
+        border-radius: 15px;
       }
     }
 </style>
