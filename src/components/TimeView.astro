@@ -1,0 +1,236 @@
+<div class="time-container">
+    <div id="time-zones">
+        <div class="time-zone-item">
+            <span class="time-zone-time" id="home-time"></span>
+        </div>
+    </div>
+    <select class="timezone-select" id="timezone-select">
+        <option value="">Add timezone...</option>
+    </select>
+</div>
+
+<style>
+    .time-container {
+        margin-bottom: 1.5rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    #time-zones {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .timezone-select {
+        width: auto;
+        max-width: 244px;
+    }
+
+    .time-zone-item {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        gap: 0.75rem;
+    }
+
+    :global(.remove-btn) {
+        all: unset;
+        cursor: pointer;
+        background-color: transparent;
+        border: none;
+        padding: 4px;
+    }
+
+
+    :global(.time-zone-item .time-zone-location) {
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+    }
+
+    :global(.time-zone-item .time-zone-shift) {
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+    }
+
+    @media (max-width: 640px) {
+        .time-container {
+            padding: 1rem;
+        }
+    }
+</style>
+
+<script>
+    function formatTimeForTimezone(timezone: string) {
+        const now = new Date();
+        return now.toLocaleTimeString("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+            timeZone: timezone,
+        });
+    }
+
+    function getTimezoneOffset(timezone: string): number {
+        const now = new Date();
+        const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+        const targetTime = new Date(utc + getTimezoneOffsetMinutes(timezone) * 60000);
+        const localTime = new Date(
+            utc +
+                getTimezoneOffsetMinutes(
+                    Intl.DateTimeFormat().resolvedOptions().timeZone
+                ) *
+                    60000
+        );
+        return Math.round(
+            (targetTime.getTime() - localTime.getTime()) / (1000 * 60 * 60)
+        );
+    }
+
+    function getTimezoneOffsetMinutes(timezone: string): number {
+        const now = new Date();
+        const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+        const targetDate = new Date(now.toLocaleString("en-US", { timeZone: timezone }));
+        const localDate = new Date(now.toLocaleString("en-US"));
+        return (targetDate.getTime() - localDate.getTime()) / (1000 * 60);
+    }
+
+    function formatTimeShift(hours: number): string {
+        if (hours === 0) return "same time";
+        const sign = hours > 0 ? "+" : "";
+        const absHours = Math.abs(hours);
+        const hourText = absHours === 1 ? "hour" : "hours";
+        return `${sign}${hours}h`;
+    }
+
+    function getTimezoneLabel(timezone: string) {
+        return timezone.split("/").pop()?.replace(/_/g, " ") || timezone;
+    }
+
+    function loadTimezones(): string[] {
+        const stored = localStorage.getItem("timeview-timezones");
+        return stored
+            ? JSON.parse(stored)
+            : ["Europe/London", "Asia/Tokyo", "America/New_York"];
+    }
+
+    function saveTimezones(timezones: string[]) {
+        localStorage.setItem("timeview-timezones", JSON.stringify(timezones));
+    }
+
+    function populateTimezoneSelect() {
+        const select = document.getElementById("timezone-select") as HTMLSelectElement;
+        if (!select) return;
+
+        const allTimezones = Intl.supportedValuesOf("timeZone");
+        const currentTimezones = loadTimezones();
+
+        select.innerHTML = '<option value="">Add timezone...</option>';
+
+        allTimezones
+            .filter((tz) => !currentTimezones.includes(tz))
+            .sort()
+            .forEach((tz) => {
+                const option = document.createElement("option");
+                option.value = tz;
+                option.textContent = `${getTimezoneLabel(tz)} (${tz})`;
+                select.appendChild(option);
+            });
+    }
+
+    function addTimezone(timezone: string) {
+        const current = loadTimezones();
+        if (!current.includes(timezone)) {
+            const updated = [...current, timezone];
+            saveTimezones(updated);
+            updateTimes();
+            populateTimezoneSelect();
+        }
+    }
+
+    function removeTimezone(timezone: string) {
+        const current = loadTimezones();
+        const updated = current.filter((tz) => tz !== timezone);
+        saveTimezones(updated);
+        updateTimes();
+        populateTimezoneSelect();
+    }
+
+    function formatDateForTimezone(timezone: string) {
+        const now = new Date();
+        return now.toLocaleDateString("en-US", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+            timeZone: timezone,
+        });
+    }
+
+    function updateTimes() {
+        const homeTime = document.getElementById("home-time");
+        if (homeTime) {
+            const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            const dateStr = formatDateForTimezone(userTimezone);
+            const timeStr = formatTimeForTimezone(userTimezone);
+            homeTime.textContent = `${dateStr} ${timeStr}`;
+        }
+
+        const timezones = loadTimezones();
+        const container = document.getElementById("time-zones");
+        if (container) {
+            const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            const timezoneItems = timezones
+                .map((tz) => {
+                    const timeShift = getTimezoneOffset(tz);
+                    const shiftText = formatTimeShift(timeShift);
+                    return `<div class="time-zone-item removable" data-timezone="${tz}">
+                        <span class="time-zone-location">${getTimezoneLabel(tz)}</span>
+                        <span class="time-zone-time">${formatTimeForTimezone(tz)}</span>
+                        <span class="time-zone-shift">(${shiftText})</span>
+                        <button class="remove-btn" data-remove="${tz}" type="button" aria-label="Remove ${getTimezoneLabel(tz)}">×</button>
+                    </div>`;
+                })
+                .join("");
+
+            container.innerHTML = `
+                <div class="time-zone-item home-timezone">
+                        <span class="time-zone-time">${formatDateForTimezone(userTimezone)} ${formatTimeForTimezone(userTimezone)}</span>
+                </div>
+                ${timezoneItems}
+            `;
+
+            setupTimezoneControls();
+        }
+    }
+
+    function setupTimezoneControls() {
+        populateTimezoneSelect();
+
+        document.querySelectorAll(".remove-btn").forEach((btn) => {
+            btn.addEventListener("click", () => {
+                const timezone = btn.getAttribute("data-remove");
+                if (timezone) {
+                    removeTimezone(timezone);
+                }
+            });
+        });
+
+        const select = document.getElementById("timezone-select") as HTMLSelectElement;
+        if (select) {
+            select.addEventListener("change", () => {
+                if (select.value) {
+                    addTimezone(select.value);
+                    select.value = "";
+                }
+            });
+        }
+    }
+
+    // Initialize the component
+    updateTimes();
+    setInterval(updateTimes, 60000);
+</script>

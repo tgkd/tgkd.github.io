@@ -5,6 +5,7 @@ import Layout from "../layouts/Layout.astro";
 import List from "../components/List.astro";
 import type { Props as ListProps } from "../components/ListRow.astro";
 import Filters from "../components/Filters.astro";
+import TimeView from "../components/TimeView.astro";
 
 function nonNullable<T>(value: T): value is NonNullable<T> {
     return value !== null && value !== undefined;
@@ -48,12 +49,6 @@ function getCategory(url?: string): ListProps["category"] {
 }
 
 const d = new Date();
-const now = d.toLocaleDateString("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-});
 const week = d.setDate(d.getDate() - 7);
 
 const parser = new Parser();
@@ -107,7 +102,7 @@ const list = (
 
 <Layout title="rss">
     <main>
-        <time>{now}</time>
+        <TimeView />
         <Filters />
         <List list={list} />
     </main>
@@ -116,10 +111,6 @@ const list = (
 <style>
     main {
         padding: 2rem;
-        color: white;
-    }
-    time {
-        color: var(--text-secondary);
     }
 </style>
 
