@@ -300,7 +300,6 @@
         flex: 1;
         padding: 0.5rem;
         border: 1px solid #dee2e6;
-        font-size: 0.875rem;
         background: #ffffff;
     }
 
@@ -335,33 +334,47 @@
 </style>
 
 <script>
-    function loadTimezones() {
+    function loadTimezones(): string[] {
         const stored = localStorage.getItem("timeview-timezones");
         return stored
             ? JSON.parse(stored)
-            : ["America/New_York", "Europe/London", "Asia/Tokyo"];
+            : ["Europe/London"];
     }
 
-    function saveTimezones(timezones) {
+    function saveTimezones(timezones: string[]): void {
         localStorage.setItem("timeview-timezones", JSON.stringify(timezones));
     }
 
-    function getTimezoneLabel(timezone) {
+    function getTimezoneLabel(timezone: string): string {
         return timezone.split("/").pop()?.replace(/_/g, " ") || timezone;
     }
 
     class SimpleTimezoneViewer {
+        private slider: HTMLInputElement;
+        private tooltip: HTMLDivElement;
+        private citiesContainer: HTMLDivElement;
+        private toggleButton: HTMLButtonElement;
+        private toggleTime: HTMLSpanElement;
+        private toggleArrow: HTMLSpanElement;
+        private collapsibleContent: HTMLDivElement;
+        private resetButton: HTMLButtonElement;
+        private timezoneInput: HTMLInputElement;
+        private timezoneList: HTMLDataListElement;
+        private offsetMinutes: number;
+        private isExpanded: boolean;
+        private timezones: string[];
+
         constructor() {
-            this.slider = document.getElementById("time-slider");
-            this.tooltip = document.getElementById("tooltip");
-            this.citiesContainer = document.getElementById("cities");
-            this.toggleButton = document.getElementById("toggle-button");
-            this.toggleTime = document.getElementById("toggle-time");
-            this.toggleArrow = document.getElementById("toggle-arrow");
-            this.collapsibleContent = document.getElementById("collapsible-content");
-            this.resetButton = document.getElementById("reset-button");
-            this.timezoneInput = document.getElementById("timezone-input");
-            this.timezoneList = document.getElementById("timezone-list");
+            this.slider = document.getElementById("time-slider") as HTMLInputElement;
+            this.tooltip = document.getElementById("tooltip") as HTMLDivElement;
+            this.citiesContainer = document.getElementById("cities") as HTMLDivElement;
+            this.toggleButton = document.getElementById("toggle-button") as HTMLButtonElement;
+            this.toggleTime = document.getElementById("toggle-time") as HTMLSpanElement;
+            this.toggleArrow = document.getElementById("toggle-arrow") as HTMLSpanElement;
+            this.collapsibleContent = document.getElementById("collapsible-content") as HTMLDivElement;
+            this.resetButton = document.getElementById("reset-button") as HTMLButtonElement;
+            this.timezoneInput = document.getElementById("timezone-input") as HTMLInputElement;
+            this.timezoneList = document.getElementById("timezone-list") as HTMLDataListElement;
             this.offsetMinutes = 0;
             this.isExpanded = false;
             this.timezones = loadTimezones();
@@ -386,8 +399,9 @@
             });
 
             // Slider events
-            this.slider.addEventListener("input", (e) => {
-                this.offsetMinutes = parseInt(e.target.value);
+            this.slider.addEventListener("input", (e: Event) => {
+                const target = e.target as HTMLInputElement;
+                this.offsetMinutes = parseInt(target.value);
                 this.updateDisplay();
                 this.updateToggleTime();
                 this.showTooltip();
@@ -402,11 +416,12 @@
             });
 
             // Timezone input
-            this.timezoneInput.addEventListener("input", (e) => {
-                const value = e.target.value;
+            this.timezoneInput.addEventListener("input", (e: Event) => {
+                const target = e.target as HTMLInputElement;
+                const value = target.value;
                 if (Intl.supportedValuesOf("timeZone").includes(value)) {
                     this.addTimezone(value);
-                    e.target.value = "";
+                    target.value = "";
                 }
             });
         }
@@ -460,7 +475,7 @@
             this.tooltip.style.left = `${percent}%`;
         }
 
-        formatOffset(minutes) {
+        formatOffset(minutes: number): string {
             if (minutes === 0) return "Now";
             const hours = Math.abs(Math.floor(minutes / 60));
             const mins = Math.abs(minutes % 60);
@@ -472,7 +487,7 @@
             return `${sign}${hours}h ${mins}m`;
         }
 
-        getCityTime(timezone) {
+        getCityTime(timezone: string): string {
             const now = new Date();
             const offsetTime = new Date(now.getTime() + this.offsetMinutes * 60000);
 
@@ -489,7 +504,7 @@
             }
         }
 
-        getTimeOfDay(timezone) {
+        getTimeOfDay(timezone: string): string {
             const now = new Date();
             const offsetTime = new Date(now.getTime() + this.offsetMinutes * 60000);
 
@@ -511,7 +526,7 @@
             }
         }
 
-        getTimezoneOffset(timezone) {
+        getTimezoneOffset(timezone: string): string {
             try {
                 const now = new Date();
                 const localTime = new Date();
@@ -552,16 +567,19 @@
             this.setupRemoveButtons();
         }
 
-        setupRemoveButtons() {
+        setupRemoveButtons(): void {
             this.citiesContainer.querySelectorAll(".remove-btn").forEach((btn) => {
-                btn.addEventListener("click", (e) => {
-                    const timezone = e.target.getAttribute("data-timezone");
-                    this.removeTimezone(timezone);
+                btn.addEventListener("click", (e: Event) => {
+                    const target = e.target as HTMLButtonElement;
+                    const timezone = target.getAttribute("data-timezone");
+                    if (timezone) {
+                        this.removeTimezone(timezone);
+                    }
                 });
             });
         }
 
-        addTimezone(timezone) {
+        addTimezone(timezone: string): void {
             if (!this.timezones.includes(timezone)) {
                 this.timezones.push(timezone);
                 saveTimezones(this.timezones);
@@ -571,8 +589,8 @@
             }
         }
 
-        removeTimezone(timezone) {
-            this.timezones = this.timezones.filter((tz) => tz !== timezone);
+        removeTimezone(timezone: string): void {
+            this.timezones = this.timezones.filter((tz: string) => tz !== timezone);
             saveTimezones(this.timezones);
             this.renderCities();
             this.populateTimezoneList();
@@ -593,29 +611,32 @@
             this.timezoneList.innerHTML = options;
         }
 
-        updateDisplay() {
+        updateDisplay(): void {
             this.tooltip.textContent = this.formatOffset(this.offsetMinutes);
             this.updateToggleTime();
 
             // Update each city
             const cityRows = this.citiesContainer.querySelectorAll(".city-row");
             cityRows.forEach((row) => {
-                const timezone = row.dataset.timezone;
+                const htmlRow = row as HTMLElement;
+                const timezone = htmlRow.dataset.timezone;
+                if (!timezone) return;
+
                 const timeElement = row.querySelector(".city-time");
                 const offsetElement = row.querySelector(".city-offset");
                 const iconElement = row.querySelector(".city-icon");
 
-                timeElement.textContent = this.getCityTime(timezone);
-                offsetElement.textContent = this.getRelativeTimeText(timezone);
+                if (timeElement) timeElement.textContent = this.getCityTime(timezone);
+                if (offsetElement) offsetElement.textContent = this.getRelativeTimeText(timezone);
 
                 // Update time of day class and icon
                 const timeOfDay = this.getTimeOfDay(timezone);
-                row.className = `city-row ${timeOfDay}`;
-                iconElement.textContent = this.getTimeIcon(timeOfDay);
+                htmlRow.className = `city-row ${timeOfDay}`;
+                if (iconElement) iconElement.textContent = this.getTimeIcon(timeOfDay);
             });
         }
 
-        getRelativeTimeText(timezone) {
+        getRelativeTimeText(timezone: string): string {
             try {
                 const now = new Date();
                 const localTime = new Date();
@@ -656,14 +677,14 @@
             }
         }
 
-        getTimeIcon(timeOfDay) {
+        getTimeIcon(timeOfDay: string): string {
             switch (timeOfDay) {
                 case "morning":
                     return "🌅";
                 case "day":
                     return "☀️";
                 case "evening":
-                    return "🌅";
+                    return "🌇";
                 case "night":
                     return "🌙";
                 default:
