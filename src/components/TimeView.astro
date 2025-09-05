@@ -363,6 +363,7 @@
         private offsetMinutes: number;
         private isExpanded: boolean;
         private timezones: string[];
+        private updateInterval: number | null = null;
 
         constructor() {
             this.slider = document.getElementById("time-slider") as HTMLInputElement;
@@ -390,6 +391,9 @@
             this.updateToggleTime();
             // Start collapsed
             this.collapsibleContent.classList.add("collapsed");
+            
+            // Set up automatic updates every minute
+            this.startAutoUpdate();
         }
 
         setupEventListeners() {
@@ -436,6 +440,32 @@
                 this.toggleButton.classList.remove("expanded");
                 this.collapsibleContent.classList.add("collapsed");
             }
+        }
+
+        startAutoUpdate(): void {
+            // Clear any existing interval
+            this.stopAutoUpdate();
+            
+            // Update every minute (60000 ms)
+            this.updateInterval = window.setInterval(() => {
+                // Only update if the slider is at "now" position (offset = 0)
+                if (this.offsetMinutes === 0) {
+                    this.updateDisplay();
+                    this.updateToggleTime();
+                }
+            }, 60000);
+        }
+
+        stopAutoUpdate(): void {
+            if (this.updateInterval !== null) {
+                window.clearInterval(this.updateInterval);
+                this.updateInterval = null;
+            }
+        }
+
+        destroy(): void {
+            // Clean up when component is destroyed
+            this.stopAutoUpdate();
         }
 
         updateToggleTime() {
@@ -694,11 +724,20 @@
     }
 
     // Initialize when DOM is ready
+    let timezoneViewer: SimpleTimezoneViewer;
+    
     if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", () => {
-            new SimpleTimezoneViewer();
+            timezoneViewer = new SimpleTimezoneViewer();
         });
     } else {
-        new SimpleTimezoneViewer();
+        timezoneViewer = new SimpleTimezoneViewer();
     }
+
+    // Clean up on page unload
+    window.addEventListener("beforeunload", () => {
+        if (timezoneViewer) {
+            timezoneViewer.destroy();
+        }
+    });
 </script>
