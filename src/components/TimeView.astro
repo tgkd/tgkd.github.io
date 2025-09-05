@@ -19,11 +19,22 @@
                 value="0"
                 class="time-slider"
             />
-            <button class="reset-button" id="reset-button"> ↻ </button>
         </div>
 
         <div class="cities-grid" id="cities">
             <!-- Cities will be populated by JavaScript -->
+        </div>
+
+        <div class="controls-row">
+            <input
+                type="text"
+                class="timezone-input"
+                id="timezone-input"
+                list="timezone-list"
+                autocomplete="off"
+            />
+            <button class="reset-button" id="reset-button"> ↻ </button>
+            <datalist id="timezone-list"></datalist>
         </div>
     </div>
 </div>
@@ -87,7 +98,6 @@
 
     .slider-container {
         position: relative;
-        margin-bottom: 1rem;
         padding: 1rem 0;
     }
 
@@ -122,17 +132,20 @@
         cursor: pointer;
     }
 
+    .controls-row {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
     .reset-button {
-        position: absolute;
-        top: 50%;
-        right: -12px;
-        transform: translateY(-50%);
         background: #f8f9fa;
         border: 1px solid #dee2e6;
-        padding: 4px 8px;
-        font-size: 0.75rem;
+        padding: 0.5rem;
+        font-size: 0.875rem;
         cursor: pointer;
-        z-index: 3;
+        flex-shrink: 0;
     }
 
     .reset-button:hover {
@@ -146,7 +159,7 @@
 
     .city-row {
         display: grid;
-        grid-template-columns: 1fr auto 120px;
+        grid-template-columns: auto 1fr auto 120px;
         align-items: center;
         padding: 0.75rem 1rem;
         transition: background-color 0.2s;
@@ -248,7 +261,7 @@
         }
 
         .city-row {
-            grid-template-columns: 1fr auto auto;
+            grid-template-columns: auto 1fr auto auto;
             gap: 0.75rem;
             padding: 0.5rem 0.75rem;
         }
@@ -283,6 +296,38 @@
         display: none;
     }
 
+    .timezone-input {
+        flex: 1;
+        padding: 0.5rem;
+        border: 1px solid #dee2e6;
+        font-size: 0.875rem;
+        background: #ffffff;
+    }
+
+    .timezone-input:focus {
+        outline: none;
+        border-color: #0d6efd;
+    }
+
+    .city-row .remove-btn {
+        background: none;
+        border: none;
+        color: #6c757d;
+        cursor: pointer;
+        padding: 0.25rem;
+        font-size: 1rem;
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+
+    .city-row:hover .remove-btn {
+        opacity: 1;
+    }
+
+    .city-row .remove-btn:hover {
+        color: #dc3545;
+    }
+
     /* Clean, readable typography */
     * {
         box-sizing: border-box;
@@ -290,11 +335,20 @@
 </style>
 
 <script>
-    const cities = [
-        { name: "New York", timezone: "America/New_York" },
-        { name: "London", timezone: "Europe/London" },
-        { name: "Tokyo", timezone: "Asia/Tokyo" },
-    ];
+    function loadTimezones() {
+        const stored = localStorage.getItem("timeview-timezones");
+        return stored
+            ? JSON.parse(stored)
+            : ["America/New_York", "Europe/London", "Asia/Tokyo"];
+    }
+
+    function saveTimezones(timezones) {
+        localStorage.setItem("timeview-timezones", JSON.stringify(timezones));
+    }
+
+    function getTimezoneLabel(timezone) {
+        return timezone.split("/").pop()?.replace(/_/g, " ") || timezone;
+    }
 
     class SimpleTimezoneViewer {
         constructor() {
@@ -306,14 +360,18 @@
             this.toggleArrow = document.getElementById("toggle-arrow");
             this.collapsibleContent = document.getElementById("collapsible-content");
             this.resetButton = document.getElementById("reset-button");
+            this.timezoneInput = document.getElementById("timezone-input");
+            this.timezoneList = document.getElementById("timezone-list");
             this.offsetMinutes = 0;
             this.isExpanded = false;
+            this.timezones = loadTimezones();
 
             this.init();
         }
 
         init() {
             this.renderCities();
+            this.populateTimezoneList();
             this.setupEventListeners();
             this.updateDisplay();
             this.updateToggleTime();
@@ -341,6 +399,15 @@
             // Reset button
             this.resetButton.addEventListener("click", () => {
                 this.resetToNow();
+            });
+
+            // Timezone input
+            this.timezoneInput.addEventListener("input", (e) => {
+                const value = e.target.value;
+                if (Intl.supportedValuesOf("timeZone").includes(value)) {
+                    this.addTimezone(value);
+                    e.target.value = "";
+                }
             });
         }
 
@@ -465,12 +532,13 @@
         }
 
         renderCities() {
-            const html = cities
+            const html = this.timezones
                 .map(
-                    (city) => `
-                <div class="city-row" data-timezone="${city.timezone}">
+                    (timezone) => `
+                <div class="city-row" data-timezone="${timezone}">
+                    <button class="remove-btn" data-timezone="${timezone}">×</button>
                     <div class="city-info">
-                        <div class="city-name">${city.name}</div>
+                        <div class="city-name">${getTimezoneLabel(timezone)}</div>
                         <div class="city-offset"></div>
                     </div>
                     <div class="city-icon"></div>
@@ -481,6 +549,48 @@
                 .join("");
 
             this.citiesContainer.innerHTML = html;
+            this.setupRemoveButtons();
+        }
+
+        setupRemoveButtons() {
+            this.citiesContainer.querySelectorAll(".remove-btn").forEach((btn) => {
+                btn.addEventListener("click", (e) => {
+                    const timezone = e.target.getAttribute("data-timezone");
+                    this.removeTimezone(timezone);
+                });
+            });
+        }
+
+        addTimezone(timezone) {
+            if (!this.timezones.includes(timezone)) {
+                this.timezones.push(timezone);
+                saveTimezones(this.timezones);
+                this.renderCities();
+                this.populateTimezoneList();
+                this.updateDisplay();
+            }
+        }
+
+        removeTimezone(timezone) {
+            this.timezones = this.timezones.filter((tz) => tz !== timezone);
+            saveTimezones(this.timezones);
+            this.renderCities();
+            this.populateTimezoneList();
+            this.updateDisplay();
+        }
+
+        populateTimezoneList() {
+            const allTimezones = Intl.supportedValuesOf("timeZone");
+            const options = allTimezones
+                .filter((tz) => !this.timezones.includes(tz))
+                .sort()
+                .map(
+                    (tz) =>
+                        `<option value="${tz}">${getTimezoneLabel(tz)} (${tz})</option>`
+                )
+                .join("");
+
+            this.timezoneList.innerHTML = options;
         }
 
         updateDisplay() {
