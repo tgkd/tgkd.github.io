@@ -9,16 +9,10 @@
     </button>
 
     <div class="collapsible-content" id="collapsible-content">
-        <div class="slider-container">
-            <div class="slider-tooltip" id="tooltip">Now</div>
-            <input
-                type="range"
-                id="time-slider"
-                min="-720"
-                max="720"
-                value="0"
-                class="time-slider"
-            />
+        <div class="time-controls">
+            <button class="time-btn" id="time-minus">-15min</button>
+            <button class="calc-time" id="calc-time">Now ↻</button>
+            <button class="time-btn" id="time-plus">+15min</button>
         </div>
 
         <div class="cities-grid" id="cities">
@@ -33,7 +27,6 @@
                 list="timezone-list"
                 autocomplete="off"
             />
-            <button class="reset-button" id="reset-button"> ↻ </button>
             <datalist id="timezone-list"></datalist>
         </div>
     </div>
@@ -96,40 +89,51 @@
         padding: 0 1rem;
     }
 
-    .slider-container {
-        position: relative;
+    .time-controls {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
         padding: 1rem 0;
+        justify-content: center;
     }
 
-    .slider-tooltip {
-        position: absolute;
-        top: 12px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: #212529;
-        color: white;
-        padding: 4px 8px;
-        font-size: 0.75rem;
-        font-weight: 500;
-        white-space: nowrap;
-        opacity: 0;
-        transition: opacity 0.2s;
-        z-index: 10;
-        pointer-events: none;
-    }
-
-    .slider-tooltip.show {
-        opacity: 1;
-    }
-
-    .time-slider {
-        width: 100%;
-        height: 12px;
-        background: transparent;
-        outline: none;
-        position: relative;
-        z-index: 2;
+    .time-btn {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
         cursor: pointer;
+        border-radius: 4px;
+        transition: background-color 0.2s;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
+    }
+
+    .time-btn:hover {
+        background: #e9ecef;
+    }
+
+    .calc-time {
+        font-size: 1rem;
+        font-weight: 500;
+        color: #212529;
+        min-width: 120px;
+        text-align: center;
+        font-family: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace;
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        padding: 0.5rem 1rem;
+        cursor: pointer;
+        border-radius: 4px;
+        transition: background-color 0.2s;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
+    }
+
+    .calc-time:hover {
+        background: #e9ecef;
     }
 
     .controls-row {
@@ -284,9 +288,20 @@
             font-size: 1rem;
         }
 
-        .slider-container {
+        .time-controls {
             padding: 0.75rem 0;
             margin-bottom: 0.75rem;
+            gap: 0.75rem;
+        }
+
+        .time-btn {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.75rem;
+        }
+
+        .calc-time {
+            font-size: 0.875rem;
+            min-width: 100px;
         }
     }
 
@@ -315,12 +330,8 @@
         cursor: pointer;
         padding: 0.25rem;
         font-size: 1rem;
-        opacity: 0;
-        transition: opacity 0.2s;
-    }
-
-    .city-row:hover .remove-btn {
         opacity: 1;
+        transition: opacity 0.2s;
     }
 
     .city-row .remove-btn:hover {
@@ -350,30 +361,30 @@
     }
 
     class SimpleTimezoneViewer {
-        private slider: HTMLInputElement;
-        private tooltip: HTMLDivElement;
+        private calcTimeDisplay: HTMLButtonElement;
+        private timeMinusBtn: HTMLButtonElement;
+        private timePlusBtn: HTMLButtonElement;
         private citiesContainer: HTMLDivElement;
         private toggleButton: HTMLButtonElement;
         private toggleTime: HTMLSpanElement;
-        private toggleArrow: HTMLSpanElement;
         private collapsibleContent: HTMLDivElement;
-        private resetButton: HTMLButtonElement;
         private timezoneInput: HTMLInputElement;
         private timezoneList: HTMLDataListElement;
         private offsetMinutes: number;
         private isExpanded: boolean;
         private timezones: string[];
         private updateInterval: number | null = null;
+        private longPressInterval: number | null = null;
+        private longPressTimeout: number | null = null;
 
         constructor() {
-            this.slider = document.getElementById("time-slider") as HTMLInputElement;
-            this.tooltip = document.getElementById("tooltip") as HTMLDivElement;
+            this.calcTimeDisplay = document.getElementById("calc-time") as HTMLButtonElement;
+            this.timeMinusBtn = document.getElementById("time-minus") as HTMLButtonElement;
+            this.timePlusBtn = document.getElementById("time-plus") as HTMLButtonElement;
             this.citiesContainer = document.getElementById("cities") as HTMLDivElement;
             this.toggleButton = document.getElementById("toggle-button") as HTMLButtonElement;
             this.toggleTime = document.getElementById("toggle-time") as HTMLSpanElement;
-            this.toggleArrow = document.getElementById("toggle-arrow") as HTMLSpanElement;
             this.collapsibleContent = document.getElementById("collapsible-content") as HTMLDivElement;
-            this.resetButton = document.getElementById("reset-button") as HTMLButtonElement;
             this.timezoneInput = document.getElementById("timezone-input") as HTMLInputElement;
             this.timezoneList = document.getElementById("timezone-list") as HTMLDataListElement;
             this.offsetMinutes = 0;
@@ -402,20 +413,21 @@
                 this.toggleCollapse();
             });
 
-            // Slider events
-            this.slider.addEventListener("input", (e: Event) => {
-                const target = e.target as HTMLInputElement;
-                this.offsetMinutes = parseInt(target.value);
+            // Time control button events with long press support
+            this.setupLongPress(this.timeMinusBtn, () => {
+                this.offsetMinutes -= 15;
                 this.updateDisplay();
                 this.updateToggleTime();
-                this.showTooltip();
             });
 
-            this.slider.addEventListener("mouseenter", () => this.showTooltip());
-            this.slider.addEventListener("mouseleave", () => this.hideTooltip());
+            this.setupLongPress(this.timePlusBtn, () => {
+                this.offsetMinutes += 15;
+                this.updateDisplay();
+                this.updateToggleTime();
+            });
 
-            // Reset button
-            this.resetButton.addEventListener("click", () => {
+            // Reset button (calc-time display)
+            this.calcTimeDisplay.addEventListener("click", () => {
                 this.resetToNow();
             });
 
@@ -463,9 +475,61 @@
             }
         }
 
+        setupLongPress(button: HTMLButtonElement, action: () => void): void {
+            let isPressed = false;
+            
+            const startLongPress = () => {
+                isPressed = true;
+                // Execute action immediately on first press
+                action();
+                
+                // Start long press after 500ms delay
+                this.longPressTimeout = window.setTimeout(() => {
+                    if (isPressed) {
+                        // Repeat action every 150ms while pressed
+                        this.longPressInterval = window.setInterval(() => {
+                            if (isPressed) {
+                                action();
+                            }
+                        }, 150);
+                    }
+                }, 500);
+            };
+            
+            const stopLongPress = () => {
+                isPressed = false;
+                this.stopLongPress();
+            };
+            
+            // Mouse events
+            button.addEventListener("mousedown", startLongPress);
+            button.addEventListener("mouseup", stopLongPress);
+            button.addEventListener("mouseleave", stopLongPress);
+            
+            // Touch events for mobile
+            button.addEventListener("touchstart", startLongPress);
+            button.addEventListener("touchend", stopLongPress);
+            button.addEventListener("touchcancel", stopLongPress);
+            
+            // Prevent context menu on long press (mobile)
+            button.addEventListener("contextmenu", (e) => e.preventDefault());
+        }
+
+        stopLongPress(): void {
+            if (this.longPressTimeout !== null) {
+                window.clearTimeout(this.longPressTimeout);
+                this.longPressTimeout = null;
+            }
+            if (this.longPressInterval !== null) {
+                window.clearInterval(this.longPressInterval);
+                this.longPressInterval = null;
+            }
+        }
+
         destroy(): void {
             // Clean up when component is destroyed
             this.stopAutoUpdate();
+            this.stopLongPress();
         }
 
         updateToggleTime() {
@@ -485,36 +549,18 @@
 
         resetToNow() {
             this.offsetMinutes = 0;
-            this.slider.value = "0";
             this.updateDisplay();
             this.updateToggleTime();
-            this.hideTooltip();
         }
 
-        showTooltip() {
-            this.tooltip.classList.add("show");
-            this.updateTooltipPosition();
-        }
-
-        hideTooltip() {
-            this.tooltip.classList.remove("show");
-        }
-
-        updateTooltipPosition() {
-            const percent = ((this.offsetMinutes + 720) / 1440) * 100;
-            this.tooltip.style.left = `${percent}%`;
-        }
 
         formatOffset(minutes: number): string {
-            if (minutes === 0) return "Now";
+            if (minutes === 0) return "Now ↻";
             const hours = Math.abs(Math.floor(minutes / 60));
             const mins = Math.abs(minutes % 60);
             const sign = minutes >= 0 ? "+" : "-";
 
-            if (mins === 0) {
-                return `${sign}${hours}h`;
-            }
-            return `${sign}${hours}h ${mins}m`;
+            return `${sign}${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')} ↻`;
         }
 
         getCityTime(timezone: string): string {
@@ -576,6 +622,36 @@
             }
         }
 
+        getTimezoneOffsetFormatted(timezone: string): string {
+            try {
+                const now = new Date();
+                const formatter = new Intl.DateTimeFormat("en-US", {
+                    timeZone: timezone,
+                    timeZoneName: "shortOffset"
+                });
+                
+                const parts = formatter.formatToParts(now);
+                const offsetPart = parts.find(part => part.type === "timeZoneName");
+                
+                if (offsetPart && offsetPart.value !== "GMT") {
+                    return offsetPart.value;
+                }
+                
+                // Fallback method
+                const localTime = new Date().getTime();
+                const targetTime = new Date(now.toLocaleString("en-US", { timeZone: timezone })).getTime();
+                const diffMinutes = Math.round((targetTime - localTime) / (1000 * 60));
+                const diffHours = Math.floor(Math.abs(diffMinutes) / 60);
+                const diffMins = Math.abs(diffMinutes) % 60;
+                const sign = diffMinutes >= 0 ? "+" : "-";
+                
+                if (diffMinutes === 0) return "UTC+0";
+                return `UTC${sign}${diffHours}${diffMins > 0 ? `:${diffMins.toString().padStart(2, '0')}` : ''}`;
+            } catch {
+                return "UTC";
+            }
+        }
+
         renderCities() {
             const html = this.timezones
                 .map(
@@ -632,17 +708,17 @@
             const options = allTimezones
                 .filter((tz) => !this.timezones.includes(tz))
                 .sort()
-                .map(
-                    (tz) =>
-                        `<option value="${tz}">${getTimezoneLabel(tz)} (${tz})</option>`
-                )
+                .map((tz) => {
+                    const offset = this.getTimezoneOffsetFormatted(tz);
+                    return `<option value="${tz}">${getTimezoneLabel(tz)} ${offset} (${tz})</option>`;
+                })
                 .join("");
 
             this.timezoneList.innerHTML = options;
         }
 
         updateDisplay(): void {
-            this.tooltip.textContent = this.formatOffset(this.offsetMinutes);
+            this.calcTimeDisplay.textContent = this.formatOffset(this.offsetMinutes);
             this.updateToggleTime();
 
             // Update each city
