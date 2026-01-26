@@ -7,13 +7,15 @@
     "start": "astro dev",
     "build": "astro check && astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "worker:install": "cd worker && pnpm install",
+    "worker:dev": "cd worker && pnpm dev",
+    "worker:deploy": "cd worker && pnpm deploy"
   },
   "dependencies": {
-    "@astrojs/check": "^0.9.4",
-    "astro": "^5.13.3",
-    "rss-parser": "^3.13.0",
-    "typescript": "^5.9.2"
+    "@astrojs/check": "^0.9.6",
+    "astro": "^5.16.15",
+    "typescript": "^5.9.3"
   },
   "packageManager": "pnpm@8.12.1+sha1.aa961ffce9b6eaa56307d9b5ff7e984f25b7eb58"
 }

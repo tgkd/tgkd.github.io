@@ -1,0 +1,8 @@
+name = "rss-worker"
+main = "src/index.ts"
+compatibility_date = "2025-01-26"
+
+# Uncomment to use KV for caching (optional)
+# [[kv_namespaces]]
+# binding = "RSS_CACHE"
+# id = "your-kv-namespace-id"
