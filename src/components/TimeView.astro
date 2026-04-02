@@ -24,10 +24,10 @@
                 type="text"
                 class="timezone-input"
                 id="timezone-input"
-                list="timezone-list"
+                placeholder="Add timezone..."
                 autocomplete="off"
             />
-            <datalist id="timezone-list"></datalist>
+            <div class="tz-dropdown" id="tz-dropdown"></div>
         </div>
     </div>
 </div>
@@ -137,10 +137,40 @@
     }
 
     .controls-row {
+        position: relative;
         display: flex;
         gap: 0.5rem;
         align-items: center;
         margin-bottom: 1rem;
+    }
+
+    .tz-dropdown {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        max-height: 200px;
+        overflow-y: auto;
+        background: #ffffff;
+        border: 1px solid #dee2e6;
+        z-index: 10;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .tz-dropdown.open {
+        display: block;
+    }
+
+    .tz-dropdown-item {
+        padding: 0.5rem;
+        cursor: pointer;
+        font-size: 0.875rem;
+    }
+
+    .tz-dropdown-item:active,
+    .tz-dropdown-item:hover {
+        background: #e9ecef;
     }
 
     .reset-button {
@@ -369,7 +399,8 @@
         private toggleTime: HTMLSpanElement;
         private collapsibleContent: HTMLDivElement;
         private timezoneInput: HTMLInputElement;
-        private timezoneList: HTMLDataListElement;
+        private tzDropdown: HTMLDivElement;
+        private allTimezones: string[];
         private offsetMinutes: number;
         private isExpanded: boolean;
         private timezones: string[];
@@ -386,7 +417,8 @@
             this.toggleTime = document.getElementById("toggle-time") as HTMLSpanElement;
             this.collapsibleContent = document.getElementById("collapsible-content") as HTMLDivElement;
             this.timezoneInput = document.getElementById("timezone-input") as HTMLInputElement;
-            this.timezoneList = document.getElementById("timezone-list") as HTMLDataListElement;
+            this.tzDropdown = document.getElementById("tz-dropdown") as HTMLDivElement;
+            this.allTimezones = Intl.supportedValuesOf("timeZone");
             this.offsetMinutes = 0;
             this.isExpanded = false;
             this.timezones = loadTimezones();
@@ -396,7 +428,6 @@
 
         init() {
             this.renderCities();
-            this.populateTimezoneList();
             this.setupEventListeners();
             this.updateDisplay();
             this.updateToggleTime();
@@ -431,14 +462,59 @@
                 this.resetToNow();
             });
 
-            // Timezone input — defer DOM work so iOS Safari's native
-            // datalist picker can finish dismissing before we mutate it
-            this.timezoneInput.addEventListener("change", (e: Event) => {
-                const target = e.target as HTMLInputElement;
-                const value = target.value;
-                if (Intl.supportedValuesOf("timeZone").includes(value)) {
-                    target.value = "";
-                    setTimeout(() => this.addTimezone(value), 0);
+            // Timezone input — custom dropdown instead of <datalist>
+            // to avoid iOS Safari freeze with large option lists
+            this.timezoneInput.addEventListener("input", () => {
+                const query = this.timezoneInput.value.trim().toLowerCase();
+                if (query.length < 2) {
+                    this.tzDropdown.classList.remove("open");
+                    return;
+                }
+
+                const matches = this.allTimezones
+                    .filter((tz) => !this.timezones.includes(tz) && tz.toLowerCase().includes(query))
+                    .slice(0, 50);
+
+                if (matches.length === 0) {
+                    this.tzDropdown.classList.remove("open");
+                    return;
+                }
+
+                this.tzDropdown.innerHTML = matches
+                    .map((tz) => `<div class="tz-dropdown-item" data-tz="${tz}">${getTimezoneLabel(tz)} <small style="color:#6c757d">(${tz})</small></div>`)
+                    .join("");
+                this.tzDropdown.classList.add("open");
+            });
+
+            // Use mousedown/touchstart so it fires before blur hides the dropdown
+            this.tzDropdown.addEventListener("mousedown", (e: Event) => {
+                e.preventDefault();
+                const item = (e.target as HTMLElement).closest(".tz-dropdown-item") as HTMLElement | null;
+                if (item?.dataset.tz) {
+                    this.addTimezone(item.dataset.tz);
+                    this.timezoneInput.value = "";
+                    this.tzDropdown.classList.remove("open");
+                }
+            });
+
+            this.tzDropdown.addEventListener("touchstart", (e: Event) => {
+                const item = (e.target as HTMLElement).closest(".tz-dropdown-item") as HTMLElement | null;
+                if (item?.dataset.tz) {
+                    e.preventDefault();
+                    this.addTimezone(item.dataset.tz);
+                    this.timezoneInput.value = "";
+                    this.tzDropdown.classList.remove("open");
+                }
+            });
+
+            this.timezoneInput.addEventListener("blur", () => {
+                this.tzDropdown.classList.remove("open");
+            });
+
+            this.timezoneInput.addEventListener("keydown", (e: KeyboardEvent) => {
+                if (e.key === "Escape") {
+                    this.tzDropdown.classList.remove("open");
+                    this.timezoneInput.blur();
                 }
             });
         }
@@ -691,7 +767,6 @@
                 this.timezones.push(timezone);
                 saveTimezones(this.timezones);
                 this.renderCities();
-                this.populateTimezoneList();
                 this.updateDisplay();
             }
         }
@@ -700,22 +775,7 @@
             this.timezones = this.timezones.filter((tz: string) => tz !== timezone);
             saveTimezones(this.timezones);
             this.renderCities();
-            this.populateTimezoneList();
             this.updateDisplay();
-        }
-
-        populateTimezoneList() {
-            const allTimezones = Intl.supportedValuesOf("timeZone");
-            const options = allTimezones
-                .filter((tz) => !this.timezones.includes(tz))
-                .sort()
-                .map((tz) => {
-                    const offset = this.getTimezoneOffsetFormatted(tz);
-                    return `<option value="${tz}">${getTimezoneLabel(tz)} ${offset} (${tz})</option>`;
-                })
-                .join("");
-
-            this.timezoneList.innerHTML = options;
         }
 
         updateDisplay(): void {
