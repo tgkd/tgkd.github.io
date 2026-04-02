@@ -43,6 +43,24 @@ const FEED_URLS = [
   "https://www.wired.com/feed/rss",
 ];
 
+// Helper function to extract text from XML elements that might be objects or strings
+function extractText(value: any): string {
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (typeof value === 'object' && value !== null) {
+    // Handle {#text: "...", @_type: "..."} format
+    if (value['#text']) {
+      return String(value['#text']);
+    }
+    // Handle other object formats
+    if (value.toString && value.toString() !== '[object Object]') {
+      return value.toString();
+    }
+  }
+  return String(value);
+}
+
 async function parseFeed(url: string): Promise<FeedItem[]> {
   const parser = new XMLParser({
     ignoreAttributes: false,
@@ -59,7 +77,7 @@ async function parseFeed(url: string): Promise<FeedItem[]> {
 
   // Handle both RSS and Atom feeds
   const channel = parsed.rss?.channel || parsed.feed;
-  const feedTitle = channel?.title || "";
+  const feedTitle = extractText(channel?.title || "");
   
   let items: any[] = [];
   
@@ -82,14 +100,16 @@ async function parseFeed(url: string): Promise<FeedItem[]> {
     
     // Handle both RSS link and Atom link formats
     let link = item.link;
-    if (typeof link === "object") {
+    if (typeof link === "object" && link !== null) {
       link = link["@_href"] || link.href || "";
     }
+    // Ensure link is always a string
+    link = extractText(link);
 
     return {
       category: getCategory(url),
-      feed: typeof feedTitle === 'string' ? feedTitle : String(feedTitle),
-      title: item.title || "Untitled",
+      feed: feedTitle,
+      title: extractText(item.title || "Untitled"),
       href: link,
       date: pubDate ? new Date(pubDate).toISOString() : undefined,
     };

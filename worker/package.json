@@ -7,10 +7,10 @@
     "deploy": "wrangler deploy"
   },
   "dependencies": {
-    "fast-xml-parser": "^4.5.0"
+    "fast-xml-parser": "^5.5.9"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20250514.0",
-    "wrangler": "4.60.0"
+    "@cloudflare/workers-types": "^4.20260402.1",
+    "wrangler": "4.79.0"
   }
 }
