@@ -431,13 +431,14 @@
                 this.resetToNow();
             });
 
-            // Timezone input
-            this.timezoneInput.addEventListener("input", (e: Event) => {
+            // Timezone input — defer DOM work so iOS Safari's native
+            // datalist picker can finish dismissing before we mutate it
+            this.timezoneInput.addEventListener("change", (e: Event) => {
                 const target = e.target as HTMLInputElement;
                 const value = target.value;
                 if (Intl.supportedValuesOf("timeZone").includes(value)) {
-                    this.addTimezone(value);
                     target.value = "";
+                    setTimeout(() => this.addTimezone(value), 0);
                 }
             });
         }
